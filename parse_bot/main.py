@@ -6,6 +6,7 @@ import sys
 import time
 import telegram
 from http import HTTPStatus
+from telegram.ext import CommandHandler, Updater, MessageHandler
 
 import requests
 from dotenv import load_dotenv
@@ -35,9 +36,19 @@ logger = logging.getLogger(__name__)
 handler = logging.StreamHandler(sys.stdout)
 logger.addHandler(handler)
 
-def wake_up():
+def wake_up(update, context):
     '''Будим бота'''
-    pass
+    chat = update.effective_chat
+    name = update.message.chat.first_name
+    button = telegram.ReplyKeyboardMarkup([['/sendmessage']], resize_keyboard=True)
+
+    context.bot.send_message(
+        chat_id=chat.id,
+        text=(f'Привет, {name}. Если хочешь сделать пост '
+               'на моем сайте http://glebtorbin.pythonanywhere.com'
+               'жми /sendmessage'),
+        reply_markup=button
+    )
 
 def text_accepting():
     '''Функция принимает текст для отправки на сайт'''
@@ -97,8 +108,15 @@ def check_tokens():
 
 def main():
     '''Основная функция описывающия логику и работу бота'''
+    updater = Updater(token=TELEGRAM_TOKEN)
+
+    updater.dispatcher.add_handler(CommandHandler('start', wake_up))
     acc_login()
     new_post('s')
+    updater.start_polling()
+    updater.idle()
+    
+    
 
 
 if __name__ == '__main__':
