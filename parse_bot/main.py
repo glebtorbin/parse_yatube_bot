@@ -49,7 +49,7 @@ def acc_login():
         csrf_getting = SESSION.get(AUTH_LINK)
     except exceptions.ConnectionError:
         logger.error('Сбой подключения к AUTH_LINK')
-    logger.info('Входим в аккаунт!')
+    logger.info('Входим в аккаунт...')
     try:
         csrf_token = csrf_getting.cookies['csrftoken']
     except exceptions.CookieError:
@@ -84,6 +84,7 @@ def new_post(message):
         'csrfmiddlewaretoken': csrf_token,
         'text': message
     }
+    logger.info('Отправляем сообщение...')
     try:
         creating_post = SESSION.post(NEW_POST_LINK, data=data, headers=HEADER)
     except exceptions.ConnectionError:
@@ -92,15 +93,13 @@ def new_post(message):
 
 def check_tokens():
     '''Проверяет переменные окружния'''
-    pass
+    return all([TELEGRAM_TOKEN, AUTH_LINK, NEW_POST_LINK, USERAGENT])
 
 def main():
     '''Основная функция описывающия логику и работу бота'''
-    pass
+    acc_login()
+    new_post('s')
 
 
 if __name__ == '__main__':
     main()
-
-acc_login()
-new_post('q')
