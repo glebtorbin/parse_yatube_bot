@@ -157,7 +157,7 @@ def main():
         updater.start_polling()
         updater.idle()
 SESSION.get(PROFILE_LINK)
-time.sleep(600)
+
 
 
 if __name__ == '__main__':
