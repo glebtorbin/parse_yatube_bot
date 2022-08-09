@@ -1,14 +1,11 @@
-import requests, re
-import fake_useragent
 import logging
 import os
 import sys
-import time
 import telegram
-from bs4 import BeautifulSoup
-from http import HTTPStatus
-from telegram.ext import CommandHandler, Updater, MessageHandler, Filters
 
+import fake_useragent
+from bs4 import BeautifulSoup
+from telegram.ext import CommandHandler, Updater, MessageHandler, Filters
 import requests
 from dotenv import load_dotenv
 
@@ -38,6 +35,7 @@ logger = logging.getLogger(__name__)
 handler = logging.StreamHandler(sys.stdout)
 logger.addHandler(handler)
 
+
 def wake_up(update, context):
     '''Будим бота'''
     chat = update.effective_chat
@@ -45,12 +43,13 @@ def wake_up(update, context):
     context.bot.send_message(
         chat_id=chat.id,
         text=(f'Привет, {name}. Если хочешь сделать пост '
-               'на моем сайте http://glebtorbin.pythonanywhere.com'
-               ' напиши его ниже'),
+              'на моем сайте http://glebtorbin.pythonanywhere.com'
+              ' напиши его ниже'),
     )
     context.bot.send_message(
         chat_id=chat.id,
         text=('Введите текст:'))
+
 
 def post_count(update, context):
     '''подсчитывет количество постов'''
@@ -65,7 +64,8 @@ def post_count(update, context):
         text = block.find('h3').text
     except exceptions.ConnectionError:
         logger.error('Сбой подключения')
-    button = telegram.ReplyKeyboardMarkup([['/sendmessage'],['/postcount']], resize_keyboard=True)
+    button = telegram.ReplyKeyboardMarkup([['/sendmessage'], ['/postcount']],
+                                          resize_keyboard=True)
     context.bot.send_message(chat_id=chat.id, text=text,
                              reply_markup=button)
 
@@ -91,19 +91,21 @@ def send_message(update, context):
     logger.info('Отправляем сообщение...')
     update.message.reply_text('Отправляем сообщение...')
     try:
-        creating_post = SESSION.post(NEW_POST_LINK, data=data, headers=HEADER)
+        SESSION.post(NEW_POST_LINK, data=data, headers=HEADER)
         update.message.reply_text('Сообщение успешно отправлено!')
         update.message.reply_text('Проверяй сайт')
         logger.info('Сообщение успешно отправлено!')
     except exceptions.ConnectionError:
         update.message.reply_text('Сбой подключения, попробуйте позже')
         logger.error('Сбой подключения к AUTH_LINK')
-    button = telegram.ReplyKeyboardMarkup([['/sendmessage'],['/postcount']], resize_keyboard=True)
+    button = telegram.ReplyKeyboardMarkup([['/sendmessage'], ['/postcount']],
+                                          resize_keyboard=True)
     context.bot.send_message(
         chat_id=chat.id,
         text=('Отправить еще сообщение -  /sendmessage, '
-               'Узнать, сколько постов сделал Bot Parser - /postcount'),
+              'Узнать, сколько постов сделал Bot Parser - /postcount'),
         reply_markup=button)
+
 
 def acc_login():
     '''Входит в аккаунт'''
@@ -128,10 +130,12 @@ def acc_login():
     except exceptions.ConnectionError:
         logger.error('Сбой подключения к AUTH_LINK')
     return print(response)
-    
+
+
 def check_tokens():
     '''Проверяет переменные окружния'''
     return all([TELEGRAM_TOKEN, AUTH_LINK, NEW_POST_LINK, USERAGENT])
+
 
 def main():
     '''Основная функция описывающия логику и работу бота'''
@@ -139,18 +143,19 @@ def main():
         msg = 'Проверьте все переменные окружения'
         logger.critical(msg)
         raise exceptions.ConstantError(msg)
-    
+
     while True:
         updater = Updater(token=TELEGRAM_TOKEN)
 
         updater.dispatcher.add_handler(CommandHandler('start', wake_up))
         updater.dispatcher.add_handler(CommandHandler('sendmessage', wake_up))
         updater.dispatcher.add_handler(CommandHandler('postcount', post_count))
-        updater.dispatcher.add_handler(MessageHandler(Filters.text, send_message))
+        updater.dispatcher.add_handler(MessageHandler(Filters.text,
+                                                      send_message))
         acc_login()
         updater.start_polling()
         updater.idle()
-    
-    
+
+
 if __name__ == '__main__':
     main()
