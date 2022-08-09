@@ -5,6 +5,7 @@ import os
 import sys
 import time
 import telegram
+from bs4 import BeautifulSoup
 from http import HTTPStatus
 from telegram.ext import CommandHandler, Updater, MessageHandler, Filters
 
@@ -18,6 +19,7 @@ load_dotenv()
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 AUTH_LINK = os.getenv('AUTH_LINK')
 NEW_POST_LINK = os.getenv('NEW_POST_LINK')
+PROFILE_LINK = os.getenv('PROFILE_LINK')
 
 USERAGENT = fake_useragent.UserAgent().random
 SESSION = requests.Session()
@@ -40,18 +42,37 @@ def wake_up(update, context):
     '''Будим бота'''
     chat = update.effective_chat
     name = update.message.chat.first_name
-    #button = telegram.ReplyKeyboardMarkup([['/sendmessage']], resize_keyboard=True)
-
     context.bot.send_message(
         chat_id=chat.id,
         text=(f'Привет, {name}. Если хочешь сделать пост '
                'на моем сайте http://glebtorbin.pythonanywhere.com'
                ' напиши его ниже'),
-        #reply_markup=button
     )
+    context.bot.send_message(
+        chat_id=chat.id,
+        text=('Введите текст:'))
+
+def post_count(update, context):
+    '''подсчитывет количество постов'''
+    chat = update.effective_chat
+    try:
+        logger.info('Собираем актуальную информацию...')
+        context.bot.send_message(chat_id=chat.id,
+                                 text='Собираем актуальную информацию...')
+        responce = SESSION.get(PROFILE_LINK).text
+        soup = BeautifulSoup(responce, 'lxml')
+        block = soup.find('main')
+        text = block.find('h3').text
+    except exceptions.ConnectionError:
+        logger.error('Сбой подключения')
+    button = telegram.ReplyKeyboardMarkup([['/sendmessage'],['/postcount']], resize_keyboard=True)
+    context.bot.send_message(chat_id=chat.id, text=text,
+                             reply_markup=button)
+
 
 def send_message(update, context):
     '''Функция принимает текст для отправки на сайт'''
+    chat = update.effective_chat
     message = update.message.text
     try:
         csrf_getting = SESSION.get(NEW_POST_LINK)
@@ -72,11 +93,17 @@ def send_message(update, context):
     try:
         creating_post = SESSION.post(NEW_POST_LINK, data=data, headers=HEADER)
         update.message.reply_text('Сообщение успешно отправлено!')
+        update.message.reply_text('Проверяй сайт')
         logger.info('Сообщение успешно отправлено!')
     except exceptions.ConnectionError:
         update.message.reply_text('Сбой подключения, попробуйте позже')
         logger.error('Сбой подключения к AUTH_LINK')
-    return creating_post
+    button = telegram.ReplyKeyboardMarkup([['/sendmessage'],['/postcount']], resize_keyboard=True)
+    context.bot.send_message(
+        chat_id=chat.id,
+        text=('Отправить еще сообщение -  /sendmessage, '
+               'Узнать, сколько постов сделал Bot Parser - /postcount'),
+        reply_markup=button)
 
 def acc_login():
     '''Входит в аккаунт'''
@@ -117,6 +144,8 @@ def main():
         updater = Updater(token=TELEGRAM_TOKEN)
 
         updater.dispatcher.add_handler(CommandHandler('start', wake_up))
+        updater.dispatcher.add_handler(CommandHandler('sendmessage', wake_up))
+        updater.dispatcher.add_handler(CommandHandler('postcount', post_count))
         updater.dispatcher.add_handler(MessageHandler(Filters.text, send_message))
         acc_login()
         updater.start_polling()
